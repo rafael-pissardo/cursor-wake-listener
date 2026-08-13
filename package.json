@@ -1,0 +1,28 @@
+{
+  "name": "cursor-wake-listener",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Wake-word listener on Windows that pastes transcribed prompts into Cursor Agent",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "tray": "wscript start-tray.vbs",
+    "test": "node --test src/*.test.js",
+    "test-send": "node src/index.js --test-send",
+    "test-hud": "node src/index.js --test-hud",
+    "devices": "node src/index.js --list-devices"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.2",
+    "@picovoice/pvrecorder-node": "^1.2.8",
+    "systray2": "^2.1.4"
+  },
+  "allowScripts": {
+    "onnxruntime-node@1.21.0": true,
+    "sharp@0.34.5": true,
+    "protobufjs@7.6.5": true
+  }
+}

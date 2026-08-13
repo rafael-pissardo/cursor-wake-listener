@@ -1,0 +1,41 @@
+{
+  "wakePhrases": [
+    "juarez",
+    "okay",
+    "ok"
+  ],
+  "wakeFuzzyMaxDistance": 2,
+  "language": "pt-BR",
+  "whisperModel": "Xenova/whisper-small",
+  "whisperDtype": "q8",
+  "whisperDevice": "cpu",
+  "whisperBeams": 1,
+  "openAgentHotkey": true,
+  "newChatHotkey": "palette",
+  "newChatPhrases": [
+    "em um novo chat",
+    "em um chat novo",
+    "abre um novo chat",
+    "abra um novo chat",
+    "abre um chat novo",
+    "abra um chat novo",
+    "tem um novo chat",
+    "num novo chat",
+    "em outro chat",
+    "outro chat",
+    "chat novo",
+    "novo chat",
+    "new chat",
+    "novo cha"
+  ],
+  "submit": true,
+  "silenceMs": 1300,
+  "minCaptureMs": 500,
+  "maxCaptureSeconds": 20,
+  "speechRmsThreshold": 0.001,
+  "micDeviceIndex": -1,
+  "micDeviceMatch": "USB",
+  "frameLength": 512,
+  "visualFeedback": true,
+  "armedTimeoutMs": 8000
+}
