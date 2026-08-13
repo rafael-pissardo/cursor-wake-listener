@@ -26,7 +26,7 @@ export function peakAmplitude(pcm) {
   return peak;
 }
 
-export function padSilence(pcm, { sampleRate = 16_000, padMs = 300 } = {}) {
+function padSilence(pcm, { sampleRate = 16_000, padMs = 300 } = {}) {
   const pad = Math.max(0, Math.round((sampleRate * padMs) / 1000));
   if (!pcm?.length || pad === 0) return pcm;
   const out = new Int16Array(pcm.length + pad * 2);
@@ -34,7 +34,7 @@ export function padSilence(pcm, { sampleRate = 16_000, padMs = 300 } = {}) {
   return out;
 }
 
-export function normalizePeak(pcm, { target = 0.85, minPeak = 0.005 } = {}) {
+function normalizePeak(pcm, { target = 0.85, minPeak = 0.005 } = {}) {
   const peak = peakAmplitude(pcm);
   if (peak < minPeak || peak >= target) return pcm;
   const gain = target / peak;
@@ -59,32 +59,6 @@ export function concatInt16(chunks) {
     offset += chunk.length;
   }
   return out;
-}
-
-export function createNoiseGate({
-  minThreshold = 0.012,
-  maxThreshold = 0.045,
-  multiplier = 3.2,
-  offset = 0.006,
-  window = 160,
-} = {}) {
-  const samples = [];
-  return {
-    observe(value) {
-      samples.push(value);
-      if (samples.length > window) samples.shift();
-    },
-    floor() {
-      if (samples.length < 15) return 0;
-      const sorted = [...samples].sort((a, b) => a - b);
-      return sorted[Math.floor(sorted.length * 0.3)];
-    },
-    threshold() {
-      const floor = this.floor();
-      if (floor === 0) return minThreshold;
-      return Math.min(maxThreshold, Math.max(minThreshold, floor * multiplier + offset));
-    },
-  };
 }
 
 export function thresholdFromProbe({ avg, peak, fallback = 0.001 }) {

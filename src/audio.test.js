@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import {
   captureShouldStop,
   concatInt16,
-  createNoiseGate,
   peakAmplitude,
   prepareAudioForWhisper,
   rms,
@@ -88,20 +87,6 @@ describe("captureShouldStop", () => {
       }),
       null,
     );
-  });
-});
-
-describe("createNoiseGate", () => {
-  it("stays at the minimum until it has samples", () => {
-    const gate = createNoiseGate({ minThreshold: 0.012 });
-    assert.equal(gate.threshold(), 0.012);
-  });
-
-  it("raises the threshold above a noisy floor", () => {
-    const gate = createNoiseGate({ minThreshold: 0.012, maxThreshold: 0.045 });
-    for (let i = 0; i < 40; i += 1) gate.observe(0.01);
-    assert.ok(gate.threshold() > 0.012);
-    assert.ok(gate.threshold() < 0.045);
   });
 });
 

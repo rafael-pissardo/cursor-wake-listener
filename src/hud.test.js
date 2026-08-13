@@ -8,7 +8,6 @@ describe("encodeHudCommand", () => {
     assert.equal(encodeHudCommand("transcribing"), "transcribing\n");
     assert.equal(encodeHudCommand("armed"), "armed\n");
     assert.equal(encodeHudCommand("sent"), "sent\n");
-    assert.equal(encodeHudCommand("ignored"), "ignored\n");
     assert.equal(encodeHudCommand("hide"), "hide\n");
   });
 

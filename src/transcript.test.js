@@ -5,37 +5,24 @@ import {
   hasWakePrefix,
   isHallucination,
   isWakeWordOnly,
-  shouldSendPrompt,
   splitNewChatIntent,
   stripWakeWord,
 } from "./transcript.js";
 
-const phrases = [
-  "hey jarvis",
-  "hey cursor",
-  "ok cursor",
-  "ok curso",
-  "jarvis",
-  "jarves",
-  "javis",
-  "cursor",
-  "curso",
-  "charps",
-  "arps",
-  "ok",
-];
+const phrases = DEFAULT_WAKE_PHRASES;
+const fuzzy = { maxDistance: 2 };
 
 describe("stripWakeWord", () => {
-  it("removes a leading jarvis prefix", () => {
-    assert.equal(stripWakeWord("Jarvis, refatora o serializer", phrases), "refatora o serializer");
+  it("removes a leading juarez prefix", () => {
+    assert.equal(stripWakeWord("Juarez, refatora o serializer", phrases), "refatora o serializer");
   });
 
-  it("removes hey cursor", () => {
-    assert.equal(stripWakeWord("hey cursor abre o spec", phrases), "abre o spec");
+  it("removes ok", () => {
+    assert.equal(stripWakeWord("ok abre o spec", phrases), "abre o spec");
   });
 
   it("strips filler before the wake word", () => {
-    assert.equal(stripWakeWord("É, jarvis ping", phrases), "ping");
+    assert.equal(stripWakeWord("É, juarez ping", phrases), "ping");
   });
 
   it("leaves a prompt without a wake word", () => {
@@ -44,75 +31,31 @@ describe("stripWakeWord", () => {
 });
 
 describe("wake detection", () => {
-  it("detects Juarez as the product wake word", () => {
-    assert.equal(hasWakePrefix("Juarez, lista meus prs", DEFAULT_WAKE_PHRASES), true);
-    assert.equal(stripWakeWord("Juarez, lista meus prs", DEFAULT_WAKE_PHRASES), "lista meus prs");
-    assert.equal(hasWakePrefix("ok lista meus prs", DEFAULT_WAKE_PHRASES), true);
-    assert.equal(stripWakeWord("ok lista meus prs", DEFAULT_WAKE_PHRASES), "lista meus prs");
+  it("detects Juarez and ok as wake words", () => {
+    assert.equal(hasWakePrefix("Juarez, lista meus prs", phrases), true);
+    assert.equal(stripWakeWord("Juarez, lista meus prs", phrases), "lista meus prs");
+    assert.equal(hasWakePrefix("ok lista meus prs", phrases), true);
+    assert.equal(stripWakeWord("ok lista meus prs", phrases), "lista meus prs");
   });
 
   it("detects wake-only audio", () => {
-    assert.equal(isWakeWordOnly("jarvis", phrases), true);
-    assert.equal(isWakeWordOnly("Hey Cursor", phrases), true);
-    assert.equal(isWakeWordOnly("jarvis, refatora", phrases), false);
+    assert.equal(isWakeWordOnly("juarez", phrases), true);
+    assert.equal(isWakeWordOnly("Okay", phrases), true);
+    assert.equal(isWakeWordOnly("juarez, refatora", phrases), false);
   });
 
-  it("accepts a Whisper misspelling of jarvis", () => {
-    assert.equal(hasWakePrefix("jarves, ping", phrases), true);
-    assert.equal(shouldSendPrompt("jarves ping agora", phrases), true);
+  it("finds juarez after a few leading words", () => {
+    assert.equal(hasWakePrefix("entao juarez ping agora", phrases), true);
+    assert.equal(stripWakeWord("entao juarez ping agora", phrases), "ping agora");
   });
 
-  it("rejects empty or wake-word-only audio for sending", () => {
-    assert.equal(shouldSendPrompt("", phrases), false);
-    assert.equal(shouldSendPrompt("jarvis", phrases), false);
-    assert.equal(shouldSendPrompt("hey cursor", phrases), false);
-  });
-
-  it("accepts a real command after the wake phrase", () => {
-    assert.equal(shouldSendPrompt("jarvis refatora o serializer", phrases), true);
-  });
-
-  it("finds jarvis after a few leading words", () => {
-    assert.equal(shouldSendPrompt("entao jarvis ping agora", phrases), true);
-    assert.equal(stripWakeWord("entao jarvis ping agora", phrases), "ping agora");
-  });
-
-  it("accepts the live miss Ok, cursor, ...", () => {
-    assert.equal(
-      shouldSendPrompt("Ok, cursor, me mostra uma receita de volta.", phrases),
-      true,
-    );
-    assert.equal(
-      stripWakeWord("Ok, cursor, me mostra uma receita de volta.", phrases),
-      "me mostra uma receita de volta",
-    );
-  });
-
-  it("accepts Ok, curso as the wake word", () => {
-    assert.equal(isWakeWordOnly("Ok, curso.", phrases), true);
-  });
-
-  it("sends when Whisper drops cursor after ok", () => {
-    assert.equal(
-      shouldSendPrompt("Ok, que isso aí? Me mostra uma receita de bolo.", phrases),
-      true,
-    );
-  });
-
-  it("treats Charps as jarvis", () => {
-    assert.equal(isWakeWordOnly("Charps.", phrases), true);
-    assert.equal(isWakeWordOnly("Arps.", phrases), true);
-  });
-
-  it("does not send a command that never said the wake phrase", () => {
+  it("does not treat a command without the wake phrase as armed", () => {
     assert.equal(hasWakePrefix("refatora o serializer", phrases), false);
-    assert.equal(shouldSendPrompt("refatora o serializer", phrases), false);
   });
 });
 
 describe("fuzzy wake word", () => {
   const juarez = ["juarez"];
-  const fuzzy = { maxDistance: 2 };
 
   it("accepts a one-letter Whisper miss like suarez", () => {
     assert.equal(hasWakePrefix("suarez lista meus prs", juarez, fuzzy), true);
@@ -120,7 +63,7 @@ describe("fuzzy wake word", () => {
   });
 
   it("accepts joares within distance 2", () => {
-    assert.equal(shouldSendPrompt("joares lista meus prs", juarez, fuzzy), true);
+    assert.equal(hasWakePrefix("joares lista meus prs", juarez, fuzzy), true);
   });
 
   it("does not treat java as juarez", () => {
@@ -137,9 +80,9 @@ describe("fuzzy wake word", () => {
   });
 
   it("accepts the live Whisper misses Vareis and Jorais", () => {
-    assert.equal(shouldSendPrompt("Vareis, ping!", juarez, fuzzy), true);
+    assert.equal(hasWakePrefix("Vareis, ping!", juarez, fuzzy), true);
     assert.equal(stripWakeWord("Vareis, ping!", juarez, fuzzy), "ping");
-    assert.equal(shouldSendPrompt("Jorais, ping!", juarez, fuzzy), true);
+    assert.equal(hasWakePrefix("Jorais, ping!", juarez, fuzzy), true);
     assert.equal(stripWakeWord("Jorais, ping!", juarez, fuzzy), "ping");
   });
 
@@ -238,7 +181,7 @@ describe("isHallucination", () => {
   });
 
   it("allows a normal Portuguese command", () => {
-    assert.equal(isHallucination("jarvis, refatora o serializer de paginação"), false);
+    assert.equal(isHallucination("juarez, refatora o serializer de paginação"), false);
     assert.equal(
       isHallucination("ok me mostra uma receita de bolo de chocolate com cobertura"),
       false,

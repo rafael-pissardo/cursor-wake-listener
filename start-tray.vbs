@@ -3,5 +3,5 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 root = fso.GetParentFolderName(WScript.ScriptFullName)
 sh.CurrentDirectory = root
 logFile = root & "\tray.log"
-cmd = "cmd /c node src\index.js --tray >> """ & logFile & """ 2>&1"
+cmd = "cmd /c node src\index.js >> """ & logFile & """ 2>&1"
 sh.Run cmd, 0, False

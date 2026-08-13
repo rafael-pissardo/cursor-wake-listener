@@ -205,10 +205,6 @@ function Set-HudState([string]$state) {
       $script:targetOpacity = 1
       $script:autoHideAt = [datetime]::UtcNow.AddMilliseconds(1600)
     }
-    "ignored" {
-      $script:pulse = $false
-      $script:autoHideAt = [datetime]::UtcNow.AddMilliseconds(220)
-    }
     "hide" {
       $script:pulse = $false
       $script:targetOpacity = 0

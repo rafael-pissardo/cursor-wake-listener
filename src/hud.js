@@ -9,7 +9,6 @@ const HUD_STATES = new Set([
   "transcribing",
   "armed",
   "sent",
-  "ignored",
   "hide",
   "quit",
 ]);

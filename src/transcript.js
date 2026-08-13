@@ -1,7 +1,3 @@
-export function escapeRegex(text) {
-  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 export function normalizeTranscript(text) {
   return String(text ?? "")
     .toLowerCase()
@@ -32,7 +28,7 @@ function indexOfPhrase(tokens, phraseTokens, maxDistance) {
   return -1;
 }
 
-export function levenshtein(a, b) {
+function levenshtein(a, b) {
   const left = String(a);
   const right = String(b);
   if (left === right) return 0;
@@ -56,7 +52,7 @@ export function levenshtein(a, b) {
   return prev[right.length];
 }
 
-export function tokensFuzzyEqual(left, right, maxDistance) {
+function tokensFuzzyEqual(left, right, maxDistance) {
   if (left === right) return true;
   if (maxDistance <= 0) return false;
   if (left.length < 4 || right.length < 4) return false;
@@ -64,7 +60,7 @@ export function tokensFuzzyEqual(left, right, maxDistance) {
   return levenshtein(left, right) <= maxDistance;
 }
 
-export function isJuarezSoundalike(token) {
+function isJuarezSoundalike(token) {
   const text = String(token ?? "");
   if (text.length < 6 || text.length > 7) return false;
   return /^[jvw][aeiou]+r[aeiou]*[sz]$/.test(text);
@@ -83,7 +79,7 @@ function resolveMaxDistance(options) {
   return Math.max(0, Math.trunc(value));
 }
 
-export function locateWake(text, phrases = DEFAULT_WAKE_PHRASES, options) {
+function locateWake(text, phrases = DEFAULT_WAKE_PHRASES, options) {
   const maxDistance = resolveMaxDistance(options);
   const normalized = stripLeadingFiller(normalizeTranscript(text));
   const tokens = normalized.split(/\s+/).filter(Boolean);
@@ -117,14 +113,6 @@ export function isWakeWordOnly(text, phrases = DEFAULT_WAKE_PHRASES, options) {
   return result.found && result.command.length === 0;
 }
 
-export function shouldSendPrompt(text, phrases = DEFAULT_WAKE_PHRASES, options) {
-  const result = locateWake(text, phrases, options);
-  if (!result.found) return false;
-  if (result.command.length < 3) return false;
-  if (/^[.,!?;:]+$/.test(result.command)) return false;
-  return true;
-}
-
 function stripIntentFiller(text) {
   return String(text ?? "")
     .replace(/^(faca|faz|faco|para mim|pra mim|me faz|me faca)(?:\s+|$)/u, "")
@@ -152,7 +140,7 @@ export function splitNewChatIntent(text, phrases = DEFAULT_NEW_CHAT_PHRASES) {
   return { newChat: false, command: normalized };
 }
 
-export function tokenizeTranscript(text) {
+function tokenizeTranscript(text) {
   return normalizeTranscript(text).split(/\s+/).filter(Boolean);
 }
 
@@ -203,7 +191,7 @@ const PORTUGUESE_FUNCTION_WORDS = new Set([
   "voce",
 ]);
 
-export function hasForeignScripts(text) {
+function hasForeignScripts(text) {
   return /[\p{Script=Hangul}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Cyrillic}\p{Script=Thai}]/u.test(
     String(text ?? ""),
   );
