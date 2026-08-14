@@ -27,6 +27,13 @@ function sttLoadOptions() {
     dtype: config.whisperDtype ?? "q8",
     device: config.whisperDevice ?? "cpu",
     deviceId: config.whisperDeviceId,
+    whisperCpp: {
+      backend: config.sttBackend ?? "auto",
+      binary: config.whisperCppBinary ?? "",
+      model: config.whisperCppModel ?? "",
+      language: config.whisperCppLanguage ?? "pt",
+      extraArgs: config.whisperCppExtraArgs ?? [],
+    },
   };
 }
 

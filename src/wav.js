@@ -49,6 +49,29 @@ export function decodeWavPcm16(buffer) {
   return { sampleRate, pcm: mono };
 }
 
+export function encodeWavPcm16(pcm, sampleRate = 16_000) {
+  const samples = pcm ?? new Int16Array(0);
+  const dataBytes = samples.length * 2;
+  const buffer = Buffer.alloc(44 + dataBytes);
+  buffer.write("RIFF", 0, "ascii");
+  buffer.writeUInt32LE(36 + dataBytes, 4);
+  buffer.write("WAVE", 8, "ascii");
+  buffer.write("fmt ", 12, "ascii");
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write("data", 36, "ascii");
+  buffer.writeUInt32LE(dataBytes, 40);
+  for (let i = 0; i < samples.length; i += 1) {
+    buffer.writeInt16LE(samples[i], 44 + i * 2);
+  }
+  return buffer;
+}
+
 export function resampleTo16k(pcm, sampleRate) {
   if (sampleRate === 16_000) return pcm;
   const ratio = sampleRate / 16_000;

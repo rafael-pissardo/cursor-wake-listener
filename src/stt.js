@@ -11,6 +11,12 @@ import {
 } from "./gpu.js";
 import { isHallucination } from "./transcript.js";
 import { toWhisperLanguage } from "./whisper-language.js";
+import {
+  resolveWhisperCpp,
+  shouldUseWhisperCpp,
+  transcribeWithWhisperCpp,
+  whisperCppAvailable,
+} from "./whisper-cpp.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 env.cacheDir = join(root, "models");
@@ -119,11 +125,32 @@ async function runTranscribe(pcm, { model, language, dtype, device, deviceId, nu
   return String(result?.text ?? "").trim();
 }
 
-export async function warmUpStt(model, options) {
+export async function warmUpStt(model, options = {}) {
+  const cpp = resolveWhisperCpp(options.whisperCpp);
+  if (shouldUseWhisperCpp(cpp)) {
+    if (whisperCppAvailable(cpp)) {
+      console.log(`STT: whisper.cpp (GPU/CUDA) — modelo ${cpp.model}`);
+      return;
+    }
+    console.warn(
+      `STT: backend "whisper-cpp" pedido, mas binario/modelo nao encontrado (${cpp.binary || "sem binario"}). Usando o Whisper local.`,
+    );
+  }
   await loadTranscriber(model, options);
 }
 
 export async function transcribe(pcm, options) {
+  const cpp = resolveWhisperCpp(options.whisperCpp);
+  if (shouldUseWhisperCpp(cpp) && whisperCppAvailable(cpp)) {
+    try {
+      const text = await transcribeWithWhisperCpp(pcm, cpp);
+      if (!isHallucination(text)) return text;
+      console.warn("whisper.cpp gerou texto incoerente. Caindo pro Whisper local.");
+    } catch (error) {
+      console.warn(`whisper.cpp falhou (${error.message}). Caindo pro Whisper local.`);
+    }
+  }
+
   const runOnCpu = () => {
     gpuDisabled = true;
     resetTranscriber();
