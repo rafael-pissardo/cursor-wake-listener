@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { PvRecorder } from "@picovoice/pvrecorder-node";
 import { captureShouldStop, concatInt16, rms, thresholdFromProbe } from "./audio.js";
 import { sendToCursor } from "./send-to-cursor.js";
-import { transcribe, warmUpStt } from "./stt.js";
+import { transcribe, warmUpStt, stopWhisperCppServer } from "./stt.js";
 import { DEFAULT_NEW_CHAT_PHRASES } from "./transcript.js";
 import { resolveListenTurn } from "./listen-turn.js";
 import { decodeWavPcm16, resampleTo16k } from "./wav.js";
@@ -29,10 +29,15 @@ function sttLoadOptions() {
     deviceId: config.whisperDeviceId,
     whisperCpp: {
       backend: config.sttBackend ?? "auto",
+      mode: config.whisperCppMode ?? "auto",
       binary: config.whisperCppBinary ?? "",
       model: config.whisperCppModel ?? "",
       language: config.whisperCppLanguage ?? "pt",
       extraArgs: config.whisperCppExtraArgs ?? [],
+      serverUrl: config.whisperCppServerUrl ?? "http://127.0.0.1:8080",
+      serverBinary: config.whisperCppServerBinary ?? "",
+      serverExtraArgs: config.whisperCppServerExtraArgs ?? [],
+      serverReadyTimeoutMs: config.whisperCppServerReadyTimeoutMs,
     },
   };
 }
@@ -206,6 +211,7 @@ async function listen() {
     }
     tray?.kill();
     hud?.stop();
+    stopWhisperCppServer();
   };
 
   tray = await startTray({

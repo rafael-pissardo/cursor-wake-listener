@@ -112,31 +112,59 @@ A captura de áudio usa `PvRecorder` (só a lib de áudio, **sem chave**). O det
 
 ## Transcrição na GPU (whisper.cpp + CUDA)
 
-O caminho padrão (`@huggingface/transformers`) roda no CPU. Neste PC o DirectML na RTX 4060 alucinava, então a placa ficava de fora. Para usar a GPU **de verdade** — mais preciso e mais rápido — o Juarez sabe delegar para um binário do [whisper.cpp](https://github.com/ggml-org/whisper.cpp) compilado com **CUDA**.
+O caminho padrão (`@huggingface/transformers`) roda no CPU. Neste PC o DirectML na RTX 4060 alucinava, então a placa ficava de fora. Para usar a GPU **de verdade** — mais preciso e mais rápido — o Juarez sabe delegar para o [whisper.cpp](https://github.com/ggml-org/whisper.cpp) compilado com **CUDA**.
 
-O Node só grava o áudio num WAV temporário e chama o binário; a RTX transcreve e devolve o texto. Continua **100% local**.
+Há dois modos:
 
-1. Consiga um `whisper-cli.exe` com CUDA (build oficial com CUDA ou compilado com `-DGGML_CUDA=ON`).
-2. Baixe um modelo GGML, ex.: `ggml-large-v3.bin`.
-3. Aponte no `config.json`:
+1. **`whisper-server` (recomendado)** — o modelo fica **residente na GPU**. O Juarez sobe o servidor no warm-up (ou reutiliza um que já esteja rodando), manda WAV via `POST /inference`, e mata o processo ao sair.
+2. **`whisper-cli`** — uma invocação por frase (recarrega o modelo toda vez). Mais simples, mais lento.
+
+Continua **100% local**.
+
+### Setup rápido (modo servidor)
+
+1. Consiga um `whisper-server.exe` com CUDA e um modelo GGML (`ggml-large-v3.bin`).
+2. No `config.json`:
 
 ```json
 "sttBackend": "whisper-cpp",
-"whisperCppBinary": "C:\\tools\\whisper\\whisper-cli.exe",
+"whisperCppMode": "server",
+"whisperCppServerBinary": "C:\\tools\\whisper\\whisper-server.exe",
 "whisperCppModel": "C:\\tools\\whisper\\ggml-large-v3.bin",
-"whisperCppLanguage": "pt",
-"whisperCppExtraArgs": ["-t", "8"]
+"whisperCppServerUrl": "http://127.0.0.1:8080",
+"whisperCppLanguage": "pt"
+```
+
+Na próxima `npm start`, o log deve mostrar algo como:
+
+```
+STT: whisper-server em http://127.0.0.1:8080 (modelo residente na GPU)
+```
+
+Se você já sobe o servidor sozinho, deixe `whisperCppServerBinary` vazio e mantenha só a URL — o Juarez detecta a porta e usa.
+
+### Só CLI (sem processo residente)
+
+```json
+"sttBackend": "whisper-cpp",
+"whisperCppMode": "cli",
+"whisperCppBinary": "C:\\tools\\whisper\\whisper-cli.exe",
+"whisperCppModel": "C:\\tools\\whisper\\ggml-large-v3.bin"
 ```
 
 | Campo | Padrão | Função |
 |---|---|---|
-| `sttBackend` | `auto` | `auto` usa whisper.cpp se `binary`+`model` existirem, senão Whisper local; `whisper-cpp` força; `transformers` mantém só o CPU. |
-| `whisperCppBinary` | `""` | Caminho do `whisper-cli.exe` (build CUDA). |
-| `whisperCppModel` | `""` | Caminho do modelo GGML (`.bin`). |
-| `whisperCppLanguage` | `pt` | Idioma passado no `-l`. |
-| `whisperCppExtraArgs` | `[]` | Args extras repassados ao binário (threads, etc.). |
+| `sttBackend` | `auto` | `auto` usa whisper.cpp se binários/modelo existirem; `whisper-cpp` força; `transformers` mantém só o CPU. |
+| `whisperCppMode` | `auto` | `auto` prefere servidor gerenciado se `whisperCppServerBinary`+modelo existirem, senão CLI; `server` força HTTP; `cli` força one-shot. |
+| `whisperCppServerBinary` | `""` | `whisper-server.exe` (CUDA). O Juarez sobe e derruba. |
+| `whisperCppServerUrl` | `http://127.0.0.1:8080` | URL do servidor (gerenciado ou externo). |
+| `whisperCppServerExtraArgs` | `[]` | Args extras do servidor (`-t`, etc.). |
+| `whisperCppBinary` | `""` | `whisper-cli.exe` para o modo one-shot. |
+| `whisperCppModel` | `""` | Modelo GGML (`.bin`). |
+| `whisperCppLanguage` | `pt` | Idioma (`-l` / form field). |
+| `whisperCppExtraArgs` | `[]` | Args extras do CLI. |
 
-Se o binário/modelo sumir ou a transcrição vier incoerente, ele **cai sozinho** para o Whisper local — o Juarez nunca fica mudo. O modelo é carregado a cada frase (whisper.cpp abre e fecha por invocação), então o `large-v3` tem um custo de partida por pedido; vale pela precisão.
+Se o servidor cair ou a saída vier incoerente, ele **cai sozinho** para o CLI (em `auto`) e depois para o Whisper local — o Juarez nunca fica mudo.
 
 ## Ele não é bobo
 
@@ -169,7 +197,7 @@ O código não desiste em silêncio: se a GPU falha no load, ou se a transcriç�
 | `src/index.js` | O loop: espera fala, captura até o silêncio, transcreve, decide. |
 | `src/audio.js` | RMS, limiar adaptativo do microfone, quando parar de gravar. |
 | `src/stt.js` | Whisper via `@huggingface/transformers`, com queda para CPU. |
-| `src/whisper-cpp.js` | Backend GPU: grava WAV, chama `whisper-cli` (CUDA), parseia o texto. |
+| `src/whisper-cpp.js` | Backend GPU: `whisper-server` residente (HTTP) ou `whisper-cli` one-shot. |
 | `src/transcript.js` | Normalização, wake word fuzzy/fonética, intenção de novo chat, caça-alucinação. |
 | `src/listen-turn.js` | O árbitro: `arm`, `send`, `noise` ou `idle-ignore`. |
 | `src/send-to-cursor.js` + `.ps1` | Clipboard, `Ctrl+I`, Command Palette, Enter. |
